@@ -10,6 +10,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.engine('hbs', exphbs.engine({
     extname: '.hbs',
+    layoutsDir: "views/layouts/",
     defaultLayout: 'main',
     helpers: {
       navLink: function(url, options) {
