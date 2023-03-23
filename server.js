@@ -12,7 +12,7 @@ app.set('views', './views');
 
 app.engine('hbs', exphbs.engine({
     extname: '.hbs',
-    layoutsDir: "views/layouts/",
+    layoutsDir: __dirname + "/views/layouts/",
     defaultLayout: 'main',
     helpers: {
       navLink: function(url, options) {

@@ -1,7 +1,7 @@
 {
-  "name": "web700-app",
+  "name": "Lab5",
   "version": "1.0.1",
-  "description": "Web Assignment 3",
+  "description": "Web Assignment 5",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -15,10 +15,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/aadityamagic/web-700.git"
+    "url": "git+https://github.com/aadityamagic/Lab5.git"
   },
   "bugs": {
-    "url": "https://github.com/aadityamagic/web-700/issues"
+    "url": "https://github.com/aadityamagic/lab5/issues"
   },
-  "homepage": "https://github.com/aadityamagic/web-700#readme"
+  "homepage": "https://github.com/aadityamagic/lab5#readme"
 }
