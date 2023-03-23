@@ -8,6 +8,8 @@ app.use(express.static('public'))
 
 app.use(express.urlencoded({ extended: true }));
 
+app.set('views', './views');
+
 app.engine('hbs', exphbs.engine({
     extname: '.hbs',
     layoutsDir: "views/layouts/",
