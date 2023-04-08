@@ -95,20 +95,12 @@ app.get("/courses", (req, res) => {
     });
 });
 
-app.get("/student/:num",(req,res)=>{
-    var num = req.params.num;
-    var numValue = parseInt(num);
-    cd.getStudentByNum(numValue).then(studentData => {
-      res.render("student", { student: studentData }); 
-      });
-  
-});
 
 app.get("/student/:studentNum", (req, res) => {
   // initialize an empty object to store the values
   let viewData = {};
 
-  data.getStudentByNum(req.params.studentNum).then((data) => {
+  cd.getStudentByNum(req.params.studentNum).then((data) => {
       if (data) {
           viewData.student = data; //store student data in the "viewData" object as "student"
       } else {
@@ -116,21 +108,29 @@ app.get("/student/:studentNum", (req, res) => {
       }
   }).catch(() => {
       viewData.student = null; // set student to null if there was an error 
-  }).then(data.getCourses)
-  .then((data) => {
-      viewData.courses = data; // store course data in the "viewData" object as "courses"
+  })
+  .then(() => {
+    cd.getCOurses()
+    .then((data) => {
+      if (data) {
+        viewData.courses = data; 
+    } else {
+
+        viewData.courses = null; 
+    }
 
       // loop through viewData.courses and once we have found the courseId that matches
       // the student's "course" value, add a "selected" property to the matching 
       // viewData.courses object
 
       for (let i = 0; i < viewData.courses.length; i++) {
-          if (viewData.courses[i].courseId == viewData.student.course) {
+          if (viewData.courses[i].courseId == viewData.student.courseId) {
               viewData.courses[i].selected = true;
           }
-      }
+      }})
 
   }).catch(() => {
+    console.log("eeror vayo")
       viewData.courses = []; // set courses to empty if there was an error
   }).then(() => {
       if (viewData.student == null) { // if no student - return an error

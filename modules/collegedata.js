@@ -79,7 +79,6 @@ const Student = sequelize.define('Student', {
           Course.findAll()
             .then(function(courses){
               if (courses.length > 0) {
-                console.log("I am here")
                 resolve(courses);
               } else {
                 reject('No courses found');
