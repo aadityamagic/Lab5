@@ -55,9 +55,6 @@ app.get("/users", (req, res) => {
     res.sendFile(__dirname + '/views/users.html');
 });
 
-app.get("/students/add", (req, res) => {
-    res.render('addStudent.hbs')
-});
 
 app.post('/students/add',  (req, res) => {
     cd.addStudents(req.body).then(studentData => {
@@ -69,35 +66,32 @@ app.get("/htmlDemo", (req, res) => {
     res.render('htmlDemo')
 });
 app.get("/students",(req,res)=>{
-    var course=req.query.course
-    if (typeof course !== 'undefined') {
-        // The variable has a value
-        cd.getStudentsByCourse(course).then(studentData => {
-          res.render("students", {students: studentData});
-          });
-      } else {
-        cd.getAllStudents().then(studentData => {
-          res.render("students", {students: studentData});
-          });
-      }
+  cd.getAllStudents()
+  .then((data) => {
+    if (data.length > 0) {
+      res.render("students", { students: data });
+    } else {
+      res.render("students", { message: "no results" });
+    }
+  })
+  .catch((error) => {
+    res.render("students", { message: error.message });
+  });
 });
 
 
 
-
 app.get("/courses", (req, res) => {
-  cd.getCOurses().then(courseData => {
-    if (courseData.length === 0) {
-      // no courses found
-      res.render("courses", { message: "no results" });
-    } else {
-      // courses found, render them using the courses template
-      res.render("courses", {courses: courseData});
-    }
-  })
-    .catch(err => {
-      // error occurred, render the error message using the courses template
-      res.render("courses", { message: err.message });
+  cd.getCOurses()
+    .then((data) => {
+      if (data.length > 0) {
+        res.render("courses", { courses: data });
+      } else {
+        res.render("courses", { message: "no results" });
+      }
+    })
+    .catch((error) => {
+      res.render("courses", { message: error.message });
     });
 });
 
@@ -110,13 +104,62 @@ app.get("/student/:num",(req,res)=>{
   
 });
 
-app.get("/course/:id", (req, res) => {
-  collegeData.getCourseById(req.params.id)
-    .then(data => {
-      res.render("course", { course: data });
+app.get("/student/:studentNum", (req, res) => {
+  // initialize an empty object to store the values
+  let viewData = {};
+
+  data.getStudentByNum(req.params.studentNum).then((data) => {
+      if (data) {
+          viewData.student = data; //store student data in the "viewData" object as "student"
+      } else {
+          viewData.student = null; // set student to null if none were returned
+      }
+  }).catch(() => {
+      viewData.student = null; // set student to null if there was an error 
+  }).then(data.getCourses)
+  .then((data) => {
+      viewData.courses = data; // store course data in the "viewData" object as "courses"
+
+      // loop through viewData.courses and once we have found the courseId that matches
+      // the student's "course" value, add a "selected" property to the matching 
+      // viewData.courses object
+
+      for (let i = 0; i < viewData.courses.length; i++) {
+          if (viewData.courses[i].courseId == viewData.student.course) {
+              viewData.courses[i].selected = true;
+          }
+      }
+
+  }).catch(() => {
+      viewData.courses = []; // set courses to empty if there was an error
+  }).then(() => {
+      if (viewData.student == null) { // if no student - return an error
+          res.status(404).send("Student Not Found");
+      } else {
+          res.render("student", { viewData: viewData }); // render the "student" view
+      }
+  });
+});
+
+
+app.get('/course/:id', function(req, res) {
+  // Get the course ID from the request parameters
+  var courseId = req.params.id;
+  
+  // Call the getCourseById function to retrieve the course data
+  cd.getCourseById(courseId)
+    .then(function(course) {
+      // If the course data is undefined, send a 404 error
+      if (course === undefined) {
+        res.status(404).send("Course Not Found");
+      }
+      else {
+        res.render("course", { course: course });
+      }
     })
-    .catch(err => {
-      res.render("error", { message: err.message });
+    .catch(function(error) {
+      // If there was an error, render the error view with the error message
+      res.render('course', { message: error.message });
     });
 });
 
@@ -130,11 +173,78 @@ app.post("/student/update", (req, res) => {
       res.status(500).send("Error updating student");
     });
 });
+app.get('/courses/add', (req, res) => {
+  // Render the "addCourse" view
+  res.render('addCourse');
+});
+
+app.post('/courses/add', async (req, res) => {
+  try {
+    // Call the addCourse function with the POST data
+    cd.addCourse(req.body);
+
+    // Redirect to "/courses" when the promise has resolved
+    res.redirect('/courses');
+  } catch (error) {
+    // Handle any errors that occur
+    console.error(error);
+    res.status(500).send('An error occurred while adding the course.');
+  }
+});
+
+app.post('/course/update', async (req, res) => {
+  try {
+    // Call the updateCourse function with the POST data
+    cd.updateCourse(req.body);
+
+    // Redirect to "/courses" when the promise has resolved
+    res.redirect('/courses');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('An error occurred while updating the course.');
+  }
+});
+
+app.get('/course/delete/:id', function(req, res) {
+  var courseId = req.params.id;
+  
+  deleteCourseById(courseId)
+    .then(function() {
+      res.redirect('/courses');
+    })
+    .catch(function(error) {
+      res.status(500).send("Unable to Remove Course / Course not found");
+    });
+});
+
+app.get('/student/delete/:studentNum', (req, res) => {
+  const studentNum = req.params.studentNum;
+  cd.deleteStudentByNum(studentNum)
+    .then(() => {
+      res.redirect('/students');
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send('Unable to Remove Student / Student not found');
+    });
+});
+
+app.get("/students/add", function(req, res) {
+  cd.getCOurses()
+    .then(function(data) {
+      res.render("addStudent", {courses: data});
+    })
+    .catch(function(err) {
+      console.log(err);
+      res.render("addStudent", {courses: []});
+    });
+});
 
 app.get('*', function(req, res){
     res.status(404).send('PAGE NOT FOUND!!!!');
   });
 // setup http server to listen on HTTP_PORT
 app.listen(HTTP_PORT, ()=>{console.log("server listening on port: " + HTTP_PORT)
-cd.initilize()
+cd.initialize()
 });
+

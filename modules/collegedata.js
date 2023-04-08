@@ -1,136 +1,286 @@
-const { resolve } = import('path');
+const Sequelize = require('sequelize');
+var sequelize = new Sequelize('bpztflvc', 'bpztflvc', '9M0J7_YSJWuWKh8-kz4t8Z1BPg9Cc4Tr', {
+    host: 'babar.db.elephantsql.com',
+    dialect: 'postgres',
+    port: 5432,
+    dialectOptions: {
+        ssl: { rejectUnauthorized: false }
+    },
+    query:{ raw: true }
+});
 
+const Student = sequelize.define('Student', {
+    studentNum: {
+      type: Sequelize.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
+    },
+    firstName: Sequelize.STRING,
+    lastName: Sequelize.STRING,
+    email: Sequelize.STRING,
+    addressStreet: Sequelize.STRING,
+    addressCity: Sequelize.STRING,
+    addressProvince: Sequelize.STRING,
+    TA: Sequelize.BOOLEAN,
+    status: Sequelize.STRING
+  });
+  
+  const Course = sequelize.define('Course', {
+    courseId: {
+      type: Sequelize.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
+    },
+    courseCode: Sequelize.STRING,
+    courseDescription: Sequelize.STRING
+  });
+  
+  // Define the relationship between Student and Course
+  Student.belongsTo(Course, { foreignKey: 'courseId' });
+  Course.hasMany(Student, { foreignKey: 'courseId' });
 
- class Data{
-    constructor(students,courses){
-        this.students=students;
-        this.courses=courses;
-    }
-}
-
-
-var dataCollection=null;
-
-
-
- exports.initilize= function (){
+  module.exports.initialize=function(){
     return new Promise((resolve, reject) => {
-    const fs=require('fs')
-   
-    //reading courses json
-    var studentData = () => JSON.parse(fs.readFileSync("Data/students.json", "UTF8"));
-    var CourseData = () => JSON.parse(fs.readFileSync("Data/courses.json", "UTF8"));
-    dataCollection=new Data(studentData(),CourseData())
-    resolve;
-})
-    
-}
+        sequelize
+          .sync()
+          .then(() => {
+            console.log('Database synced successfully.');
+            resolve();
+          })
+          .catch((err) => {
+            console.error('Unable to sync the database:', err);
+            reject('Unable to sync the database.');
+          });
+      });
+  }
 
 //CRA
 
  exports.getAllStudents = function(){
     return new Promise((resolve, reject) => {
-    if (dataCollection.length === 0) {
-        reject("no results returned");
-    }else{
-        resolve(dataCollection.students)
-    }
-})
+        Student.findAll()
+          .then((students) => {
+            if (students.length === 0) {
+              reject('No students found.');
+            } else {
+              resolve(students);
+            }
+          })
+          .catch((err) => {
+            console.error('Error getting all students:', err);
+            reject('Unable to get all students.');
+          });
+      });
 }
 
 
- exports.getCOurses = function (){
-    return new Promise((resolve, reject) => {
-    if (dataCollection.length === 0) {
-        reject("no results returned");
-    }else{
-        resolve(dataCollection.courses)
-    }
-})
-}
+ module.exports.getCOurses = function (){
+        return new Promise((resolve, reject) => {
+          Course.findAll()
+            .then(function(courses){
+              if (courses.length > 0) {
+                console.log("I am here")
+                resolve(courses);
+              } else {
+                reject('No courses found');
+              }
+            })
+            .catch((error) => {
+              reject(`Error retrieving courses: ${error.message}`);
+            })
+        });
+      }
+      
+
 
 module.exports.addStudents = function(studentData){
-    return new Promise(function (resolve, reject) {
-    studentData.TA = studentData.TA === undefined ? false : true;
+    studentData.TA = (studentData.TA) ? true : false;
 
-    var studentNum = dataCollection.students.length + 1;
-    studentData.studentNum = studentNum;
-
-    dataCollection.students.push(studentData);
-
-    resolve(dataCollection);
+    // Replace empty values with null
+    for (const prop in studentData) {
+      if (studentData.hasOwnProperty(prop) && studentData[prop] === "") {
+        studentData[prop] = null;
+      }
+    }
+  
+    return new Promise((resolve, reject) => {
+      Student.create(studentData)
+        .then(() => {
+          resolve();
+        })
+        .catch((error) => {
+          reject(`Unable to create student: ${error.message}`);
+        });
     });
+
 
 }
 
 module.exports.getStudentByNum = function (num) {
-    return new Promise(function (resolve, reject) {
-        var foundStudent = null;
-
-        for (let i = 0; i < dataCollection.students.length; i++) {
-            if (dataCollection.students[i].studentNum == num) {
-                foundStudent = dataCollection.students[i];
+        return new Promise((resolve, reject) => {
+          Student.findAll({ 
+            where: {
+              studentNum: num
             }
-        }
-
-        if (!foundStudent) {
-            reject("query returned 0 results"); return;
-        }
-
-        resolve(foundStudent);
-    });
-};
-module.exports.getCourseById=function(id) {
-    return new Promise((resolve, reject) => {
-      const course = courses.find(c => c.courseId === id);
-      if (course) {
-        resolve(course);
-      } else {
-        reject(new Error("query returned 0 results"));
+        })
+            .then((filteredStudents) => {
+              if (filteredStudents.length > 0) {
+                resolve(filteredStudents[0]);
+              } else {
+                reject(`No student found with studentNum ${num}`);
+              }
+            })
+            .catch((error) => {
+              reject(`Error retrieving student: ${error.message}`);
+            });
+        });
       }
-    });
-  }
+      
+
+
+module.exports.getCourseById=function(id) {
+        return new Promise((resolve, reject) => {
+          Course.findAll({ 
+            where: {
+              courseId: id
+            }
+        })
+            .then((filteredCourses) => {
+              if (filteredCourses.length > 0) {
+                
+                resolve(filteredCourses[0]);
+              } else {
+                reject(`No course found with id ${id}`);
+              }
+            })
+            .catch((error) => {
+              reject(`Error retrieving course: ${error.message}`);
+            });
+        });
+      }
+      
+
+  
 
    module.exports.updateStudent=function(studentData) {
+    studentData.TA = (studentData.TA) ? true : false;
+
+    // Replace empty values with null
+    for (const prop in studentData) {
+      if (studentData.hasOwnProperty(prop) && studentData[prop] === "") {
+        studentData[prop] = null;
+      }
+    }
+  
     return new Promise((resolve, reject) => {
-        students=dataCollection.students
-        for (let i = 0; i < students.length; i++) {
-          if (students[i].studentNum === studentData.studentNum) {
-            students[i].firstName = studentData.firstName;
-            students[i].lastName = studentData.lastName;
-            students[i].email = studentData.email;
-            students[i].addressStreet = studentData.addressStreet;
-            students[i].addressCity = studentData.addressCity;
-            students[i].addressProvince = studentData.addressProvince;
-            students[i].TA = studentData.TA ? true : false;
-            students[i].status = studentData.status;
-            students[i].course = studentData.course;
-            resolve();
-            return;
-          }
-        }
-        reject("Student not found");
-      });
+      Student.create(studentData)
+        .then(() => {
+          resolve();
+        })
+        .catch((error) => {
+          reject(`Unable to create student: ${error.message}`);
+        });
+    });
   }
 
 module.exports.getStudentsByCourse = function (course) {
-    return new Promise(function (resolve, reject) {
-        var filteredStudents = [];
-
-        for (let i = 0; i < dataCollection.students.length; i++) {
-            if (dataCollection.students[i].course == course) {
-                filteredStudents.push(dataCollection.students[i]);
+    return new Promise((resolve, reject) => {
+        Student.findAll()
+          .then((students) => {
+            const filteredStudents = students.filter((student) => student.course === course);
+            if (filteredStudents.length > 0) {
+              resolve(filteredStudents);
+            } else {
+              reject(`No students found for course ${course}`);
             }
+          })
+          .catch((error) => {
+            reject(`Error retrieving students: ${error.message}`);
+          });
+      });}
+
+      module.exports.addCourse=function(courseData) {
+        for (let prop in courseData) {
+          if (courseData[prop] === "") {
+            courseData[prop] = null;
+          }
         }
+        courseData.isActive = true; // set isActive to true
+        return new Promise(function(resolve, reject) {
+          Course.create(courseData)
+            .then(function() {
+              resolve();
+            })
+            .catch(function() {
+              reject("unable to create course");
+            });
+        });
+      }
 
-        if (filteredStudents.length == 0) {
-            reject("query returned 0 results"); return;
+      module.exports.updateCourse=function(courseData) {
+        Object.keys(courseData).forEach((key) => {
+          if (courseData[key] === "") {
+            courseData[key] = null;
+          }
+        });
+        
+      
+        // update the course
+        return sequelize.sync().then(function (courseData) {
+          // update User 2's last name to "James"
+          // NOTE: this also updates the "updatedAt field"
+          Course.update({
+              courseCode: courseData.courseCode,
+              courseDescription: courseData.courseDescription
+          }, {
+              where: { courseId: courseData.courseId } // only update user with id == 2
+          }).then(function () { console.log("successfully updated user 2");});
+      
+      })
+      
+          .then(() => {
+            // update successful
+            return Promise.resolve();
+          })
+          .catch((err) => {
+            // update failed
+            return Promise.reject("unable to update course");
+          });
+      }
+      
+      
+module.exports.deleteStudentByNum=async function(studentNum) {
+        try {
+      
+      
+          const deletedStudent = await Student.destroy({
+            where: {
+      
+      
+              studentNum: studentNum,
+            },
+          });
+          if (deletedStudent) {
+            return Promise.resolve();
+          } else {
+            return Promise.reject("Student not found");
+          }
+        } catch (err) {
+          return Promise.reject(err);
         }
-
-        resolve(filteredStudents);
-    });
-};
-
-
-
-
+      }
+      
+module.exports.deleteCourseById=function(id) {
+        return new Promise((resolve, reject) => {
+          Course.destroy({ where: { courseId: id } })
+            .then(numDeleted => {
+              if (numDeleted === 0) {
+                reject(new Error(`No course found with id ${id}`));
+              } else {
+                resolve();
+              }
+            })
+            .catch(err => reject(err));
+        });
+      }
+      
