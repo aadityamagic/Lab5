@@ -208,7 +208,7 @@ app.post('/course/update', async (req, res) => {
 app.get('/course/delete/:id', function(req, res) {
   var courseId = req.params.id;
   
-  deleteCourseById(courseId)
+  cd.deleteCourseById(courseId)
     .then(function() {
       res.redirect('/courses');
     })
